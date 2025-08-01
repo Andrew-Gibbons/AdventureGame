@@ -25,6 +25,10 @@ let playerGold = 20;
 let currentLocation = "village";
 let gameRunning = true;
 let inventory = [];
+let weaponDamage = 0;
+let swordDamage = 10;
+let monsterArmor = 5;
+let healingPotionValue = 30;
 
 console.log("You start with " + playerHealth + " health.");
 console.log("Your current location is: " + currentLocation);
@@ -33,3 +37,7 @@ console.log("Your inventory: " + inventory.join(", "));
 
 getPlayerName();
 console.log("You start with " + playerGold + " gold.");
+console.log("Your current weapon damage is: " + weaponDamage);
+console.log("When you buy a sword, your weapon damage will be "+ swordDamage + ".");
+console.log("The monster's armor is: " + monsterArmor);
+console.log("You have a healing potion that restores " + healingPotionValue + " health.");
