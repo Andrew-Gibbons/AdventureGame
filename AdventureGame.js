@@ -1,63 +1,75 @@
 const readline = require("readline-sync");
 
-/*
-Adventure Game
-This game will be a text-based game where the player will be able
-to make choices that affect the outcome of the game.
-The player will be able to choose their own path and the story will change
-based on their decisions.
-*/
+// =====================
+// === Game Variables ===
+// =====================
+
+let playerName = "";
+let playerHealth = 150;
+let playerGold = 100; // Start with 100 gold
+let weaponDamage = 0;
+let maxInventorySlots = 10; // Inventory has 10 slots
+
+// Start Story Choices
+let currentLoc = "village";
+let isFirstVisit = true;
+let firstVisitVillage = true;
+let firstVisitBlacksmithOne = true;
+let firstVisitMarket = true;
+let firstVisitForest = true;
+
+// Inventory array: stores all player items as objects, max 10 slots
+let inventory = []; // Example: [{...sword}, {...healthPotion}]
+
+let gameRunning = true;
+
+// =====================
+// === Item Templates ===
+// =====================
+
+const healthPotion = {
+    name: "Health Potion",
+    type: "potion",
+    value: 5,
+    effect: 30,
+    description: "A magical potion that restores 30 health when used."
+};
+
+const sword = {
+    name: "Sword",
+    type: "weapon",
+    value: 10,
+    effect: 10,
+    description: "A sharp blade that deals 10 damage to enemies."
+};
 
 // =====================
 // === Display Section ===
 // =====================
 
-/**
- * Displays the player's inventory in a formatted way.
- * Shows each slot and its contents.
- * No parameters.
- * No return value.
- */
-function showInven() {
+function showInventory() {
     console.log("\n=== INVENTORY ===");
-    let empty = true;
-    for (let i = 0; i < inventorySlots; i++) {
-        const item = inventory[i];
-        if (item) {
-            empty = false;
-            if (item === "sword") {
-                console.log(`Slot ${i + 1}: Sword (Weapon)`);
-            } else if (item === "shield") {
-                console.log(`Slot ${i + 1}: Shield (Armor)`);
-            } else if (item === "potion") {
-                console.log(`Slot ${i + 1}: Potion (Jar)`);
-            } else {
-                console.log(`Slot ${i + 1}: ${item}`);
-            }
-        } else {
-            console.log(`Slot ${i + 1}: (empty)`);
-        }
-    }
-    if (empty) {
+    if (inventory.length === 0) {
         console.log("Your inventory is empty.");
+        return;
+    }
+    inventory.forEach((item, idx) => {
+        console.log(`${idx + 1}: ${item.name} (${item.type}) - ${item.description}`);
+    });
+}
+
+function checkStatus() {
+    console.log(`Status: Health=${playerHealth}, Gold=${playerGold}`);
+    if (inventory.length === 0) {
+        console.log("Inventory: (empty)");
+    } else {
+        let invStr = inventory.map((item, idx) => {
+            return `${idx + 1}: ${item.name}`;
+        }).join(", ");
+        console.log(`Inventory: [${invStr}]`);
     }
 }
 
-/**
- * Displays the player's current status including health, gold, and inventory.
- * No parameters.
- * No return value.
- */
-function checkStatus() {
-    console.log(`Status: Health=${playerHealth}, Gold=${playerGold}, Inventory=[${inventory.join(", ")}]`);
-}
-
-/**
- * Displays the help menu with information about commands, combat, navigation, and items.
- * Organized into logical categories.
- * No parameters.
- * No return value.
- */
 function showHelp() {
     while (true) {
         console.log("\n=== HELP MENU ===");
@@ -88,9 +100,8 @@ function showHelp() {
                 break;
             case "4":
                 console.log("\n--- ITEMS ---");
-                console.log("Sword: Used to attack monsters.");
-                console.log("Shield: Provides armor (not yet implemented).");
-                console.log("Potion: Heals for 1 point, costs 1 gold, max 10 potions.");
+                console.log(`${sword.name}: ${sword.description}`);
+                console.log(`${healthPotion.name}: ${healthPotion.description}`);
                 break;
             case "5":
                 console.log("\n--- QUIT/EXIT ---");
@@ -106,32 +117,16 @@ function showHelp() {
 }
 
 // =====================
-// === Gameplay Section ===
+// === Utility Section ===
 // =====================
 
-let playerName = "";
-let playerHealth = 10;
-let playerGold = 20;
-let weaponDamage = 0;
-let swordDamage = 10;
-let healingPotionValue = 1; // Each potion restores 1 health
-let maxPotions = 10;
+function hasItemType(type) {
+    return inventory.some(item => item.type === type);
+}
 
-// Start Story Choices
-let currentLoc = "village";
-let isFirstVisit = true;
-let firstVisitVillage = true;
-let firstVisitBlacksmithOne = true;
-let firstVisitMarket = true;
-let firstVisitForest = true;
-
-// Initialize inventory slots
-let inventorySlots = 3;
-let inventory = ["sword", "potion", null];
-
-let gameRunning = true;
-
-// === Initialization Section ===
+// =====================
+// === Gameplay Section ===
+// =====================
 
 console.log("Welcome to the Adventure Game");
 console.log("Prepare yourself for an epic journey!");
@@ -140,11 +135,6 @@ console.log("Is this the first visit?", isFirstVisit);
 console.log("Type of currentLocation:", typeof currentLoc);
 console.log("Type of isFirstVisit:", typeof isFirstVisit);
 
-/**
- * Prompts the player for their name and welcomes them.
- * No parameters.
- * No return value.
- */
 function getPlayerName() {
     playerName = readline.question("What is your name, brave adventurer? ");
     console.log(`Welcome, ${playerName}! Your adventure begins now.`);
@@ -153,8 +143,8 @@ function getPlayerName() {
 getPlayerName();
 console.log("You start with " + playerGold + " gold.");
 console.log("Your current weapon damage is: " + weaponDamage);
-console.log("When you buy a sword, your weapon damage will be "+ swordDamage + ".");
-console.log("You have a healing potion that restores " + healingPotionValue + " health.");
+console.log("When you buy a sword, your weapon damage will be " + sword.effect + ".");
+console.log("You have a healing potion that restores " + healthPotion.effect + " health.");
 
 /**
  * Updates the player's health based on the action.
@@ -167,16 +157,17 @@ function updateHealth(action) {
             console.log("You are dead and cannot use a potion.");
             return false;
         }
-        if (playerHealth >= 10) {
-            console.log("Potion fails! Player health over 10 points forbidden.");
+        if (playerHealth >= 150) {
+            console.log("Potion fails! Player health over 150 points forbidden.");
             return false;
         }
-        let potionIndex = inventory.indexOf("potion");
+        let potionIndex = inventory.findIndex(item => item.type === "potion");
         if (potionIndex !== -1) {
-            playerHealth += healingPotionValue;
-            if (playerHealth > 10) playerHealth = 10;
-            inventory[potionIndex] = null;
-            console.log(`You use a potion. Health is now ${playerHealth}.`);
+            playerHealth += inventory[potionIndex].effect;
+            if (playerHealth > 150) playerHealth = 150;
+            // Remove potion from inventory
+            let usedPotion = inventory.splice(potionIndex, 1)[0];
+            console.log(`You use a ${usedPotion.name}. Health is now ${playerHealth}.`);
             if (playerHealth <= 3 && playerHealth > 0) {
                 console.log("Warning: Your health is low!");
             }
@@ -187,9 +178,9 @@ function updateHealth(action) {
         }
     } else if (action === "damage") {
         if (playerHealth > 0) {
-            playerHealth -= 1;
+            playerHealth -= 15; // Monster deals 15 damage
             if (playerHealth < 0) playerHealth = 0;
-            console.log(`You take 1 damage. Health is now ${playerHealth}.`);
+            console.log(`You take 15 damage. Health is now ${playerHealth}.`);
             if (playerHealth <= 3 && playerHealth > 0) {
                 console.log("Warning: Your health is low!");
             }
@@ -207,39 +198,35 @@ function updateHealth(action) {
 }
 
 /**
- * Allows the player to inspect their inventory and view details about each item.
+ * Allows the player to inspect their inventory and view/use items.
  * No parameters.
  * No return value.
  */
 function checkInventory() {
-    showInven();
-    function checkItemInSlot() {
-        const slotInput = readline.question("Enter the slot number to inspect (1-" + inventorySlots + ", or 0 to exit): ");
-        const slotNum = parseInt(slotInput, 10);
-        if (slotNum === 0) {
-            console.log("Exiting inventory inspection.");
-            return;
-        }
-        if (slotNum < 1 || slotNum > inventorySlots) {
-            console.log("Invalid slot number.");
-            return;
-        }
-        const item = inventory[slotNum - 1];
-        if (item) {
-            if (item === "sword") {
-                console.log(`You inspect slot ${slotNum}: It contains a Sword (Weapon).`);
-            } else if (item === "shield") {
-                console.log(`You inspect slot ${slotNum}: It contains a Shield (Armor).`);
-            } else if (item === "potion") {
-                console.log(`You inspect slot ${slotNum}: It contains a Potion (Jar).`);
-            } else {
-                console.log(`You inspect slot ${slotNum}: It contains a ${item}.`);
-            }
-        } else {
-            console.log(`Slot ${slotNum} is empty.`);
+    showInventory();
+    if (inventory.length === 0) return;
+    const slotInput = readline.question("Enter the item number to inspect/use (1-" + inventory.length + ", or 0 to exit): ");
+    const slotNum = parseInt(slotInput, 10);
+    if (slotNum === 0) {
+        console.log("Exiting inventory inspection.");
+        return;
+    }
+    if (slotNum < 1 || slotNum > inventory.length) {
+        console.log("Invalid item number.");
+        return;
+    }
+    const item = inventory[slotNum - 1];
+    console.log(`You inspect item ${slotNum}: ${item.name} (${item.type})`);
+    console.log(item.description);
+    if (item.type === "potion") {
+        let use = readline.question("Would you like to use this potion? (y/n): ");
+        if (use.toLowerCase() === "y") {
+            playerHealth += item.effect;
+            if (playerHealth > 10) playerHealth = 10;
+            inventory.splice(slotNum - 1, 1);
+            console.log(`You used a ${item.name}. Health is now ${playerHealth}.`);
         }
     }
-    checkItemInSlot();
 }
 
 /**
@@ -294,13 +281,13 @@ function move(destination) {
  */
 function doBattle() {
     console.log("Combat begins!");
-    let hasSword = inventory.includes("sword");
-    if (!hasSword) {
+    if (!hasItemType("weapon")) {
         console.log("You have no weapon! You retreat to the forest entrance.");
         return false; // Retreat
     }
+    let weapon = inventory.find(item => item.type === "weapon");
     let battlePlayerHealth = playerHealth;
-    let monsterHealth = 10;
+    let monsterHealth = 50;
     let round = 1;
     while (battlePlayerHealth > 0 && monsterHealth > 0) {
         console.log(`\n--- Round ${round} ---`);
@@ -312,8 +299,8 @@ function doBattle() {
         console.log("5: Help");
         let action = readline.question("Choose your action (1-5): ");
         if (action === "1") {
-            monsterHealth -= 2;
-            console.log("You attack the monster for 2 points!");
+            monsterHealth -= weapon.effect;
+            console.log(`You attack the monster with your ${weapon.name} for ${weapon.effect} points!`);
             if (monsterHealth <= 0) {
                 monsterHealth = 0;
                 console.log(`You defeated the beast! You win! Your health: ${battlePlayerHealth}. You gain 10 gold.`);
@@ -324,30 +311,34 @@ function doBattle() {
         } else if (action === "2") {
             // Use potion
             let potionUsed = false;
-            if (battlePlayerHealth > 0 && battlePlayerHealth < 10) {
-                let potionIndex = inventory.indexOf("potion");
+            if (battlePlayerHealth > 0 && battlePlayerHealth < 150) {
+                let potionIndex = inventory.findIndex(item => item.type === "potion");
                 if (potionIndex !== -1) {
-                    // Call updateHealth for potion use
+                    let potion = inventory[potionIndex];
                     // Temporarily set playerHealth to battlePlayerHealth for updateHealth, then sync back
                     let prevPlayerHealth = playerHealth;
                     playerHealth = battlePlayerHealth;
-                    potionUsed = updateHealth("potion");
+                    playerHealth += potion.effect;
+                    if (playerHealth > 150) playerHealth = 150;
+                    inventory.splice(potionIndex, 1);
+                    console.log(`You use a ${potion.name}. Health is now ${playerHealth}.`);
                     battlePlayerHealth = playerHealth;
                     playerHealth = prevPlayerHealth;
+                    potionUsed = true;
                 } else {
                     console.log("You have no potions!");
                 }
             } else if (battlePlayerHealth === 0) {
                 console.log("You are dead and cannot use a potion.");
             } else {
-                console.log("Potion fails! Player health over 10 points forbidden.");
+                console.log("Potion fails! Player health over 150 points forbidden.");
             }
             if (!potionUsed) continue;
         } else if (action === "3") {
             console.log("You run away from the battle!");
             return false;
         } else if (action === "4") {
-            showInven();
+            showInventory();
             checkInventory();
             continue;
         } else if (action === "5") {
@@ -358,7 +349,6 @@ function doBattle() {
             continue;
         }
         // Monster attacks
-        // Call updateHealth for taking damage
         let prevPlayerHealth = playerHealth;
         playerHealth = battlePlayerHealth;
         updateHealth("damage");
@@ -366,7 +356,7 @@ function doBattle() {
         playerHealth = prevPlayerHealth;
 
         if (battlePlayerHealth < 0) battlePlayerHealth = 0;
-        console.log("The monster attacks you for 1 point!");
+        console.log("The monster attacks you for 15 point!");
         console.log(`Your Health: ${battlePlayerHealth} | Monster Health: ${monsterHealth}`);
         if (battlePlayerHealth <= 3 && battlePlayerHealth > 0) {
             console.log("Warning: Your health is low!");
@@ -385,11 +375,6 @@ function doBattle() {
 // === Location Section ===
 // =====================
 
-/**
- * Handles the village location, presenting options to the player.
- * No parameters.
- * No return value.
- */
 function village() {
     console.log("\n=== VILLAGE ===");
     if (firstVisitVillage) {
@@ -418,7 +403,7 @@ function village() {
     } else if (choice === 4) {
         checkStatus();
     } else if (choice === 5) {
-        showInven();
+        showInventory();
         checkInventory();
     } else if (choice === 6) {
         showHelp();
@@ -430,11 +415,6 @@ function village() {
     }
 }
 
-/**
- * Handles the blacksmith location, presenting options to the player.
- * No parameters.
- * No return value.
- */
 function blacksmith() {
     console.log("\n=== BLACKSMITH ===");
     if (firstVisitBlacksmithOne) {
@@ -445,36 +425,45 @@ function blacksmith() {
     }
     console.log("What would you like to do?");
     console.log("1: Return to the village");
-    console.log("2: Check your status");
-    console.log("3: Check your inventory");
-    console.log("4: Help");
-    console.log("5: Quit the game");
-    let blacksmithInput = readline.question("Enter your choice (1-5): ");
+    console.log(`2: Buy a ${sword.name} (${sword.value} gold)`);
+    console.log("3: Check your status");
+    console.log("4: Check your inventory");
+    console.log("5: Help");
+    console.log("6: Quit the game");
+    let blacksmithInput = readline.question("Enter your choice (1-6): ");
     let blacksmithChoice = parseInt(blacksmithInput, 10);
 
     if (blacksmithChoice === 1) {
         move("village");
     } else if (blacksmithChoice === 2) {
-        checkStatus();
+        // Buy sword logic
+        if (hasItemType("weapon")) {
+            console.log("You already have a sword.");
+        } else if (inventory.length >= maxInventorySlots) {
+            console.log("No space in your inventory for a sword.");
+        } else if (playerGold < sword.value) {
+            console.log("You do not have enough gold to buy a sword.");
+        } else {
+            inventory.push({ ...sword });
+            playerGold -= sword.value;
+            console.log(`You bought a ${sword.name} for ${sword.value} gold.`);
+            console.log(`You now have ${playerGold} gold.`);
+        }
     } else if (blacksmithChoice === 3) {
-        showInven();
-        checkInventory();
+        checkStatus();
     } else if (blacksmithChoice === 4) {
-        showHelp();
+        showInventory();
+        checkInventory();
     } else if (blacksmithChoice === 5) {
+        showHelp();
+    } else if (blacksmithChoice === 6) {
         console.log("Thank you for playing! Goodbye.");
         gameRunning = false;
-    } else if (isNaN(blacksmithChoice) || blacksmithChoice < 1 || blacksmithChoice > 5) {
-        console.log("Invalid choice. Please enter a number between 1 and 5.");
+    } else if (isNaN(blacksmithChoice) || blacksmithChoice < 1 || blacksmithChoice > 6) {
+        console.log("Invalid choice. Please enter a number between 1 and 6.");
     }
 }
 
-/**
- * Handles the market location, presenting options to the player.
- * Allows the player to buy potions.
- * No parameters.
- * No return value.
- */
 function market() {
     console.log("\n=== MARKET ===");
     if (firstVisitMarket) {
@@ -483,7 +472,7 @@ function market() {
     }
     console.log("You see vendors selling food, potions, and trinkets.");
     console.log("1: Return to the village");
-    console.log("2: Buy a potion (1 gold, max 10 potions)");
+    console.log(`2: Buy a ${healthPotion.name} (${healthPotion.value} gold, heals ${healthPotion.effect} HP)`);
     console.log("3: Check your status");
     console.log("4: Check your inventory");
     console.log("5: Help");
@@ -495,29 +484,20 @@ function market() {
         move("village");
     } else if (marketChoice === 2) {
         // Buy potion logic
-        let potionCount = inventory.filter(item => item === "potion").length;
-        if (potionCount >= maxPotions) {
-            console.log("You cannot carry more than 10 potions.");
-        } else if (playerGold < 1) {
+        if (inventory.length >= maxInventorySlots) {
+            console.log("No space in your inventory for more potions.");
+        } else if (playerGold < healthPotion.value) {
             console.log("You do not have enough gold to buy a potion.");
         } else {
-            // Find first empty slot or expand inventory if needed
-            let slot = inventory.indexOf(null);
-            if (slot === -1 && inventory.length < maxPotions) {
-                inventory.push("potion");
-            } else if (slot !== -1) {
-                inventory[slot] = "potion";
-            } else {
-                console.log("No space in your inventory for more potions.");
-                return;
-            }
-            playerGold -= 1;
-            console.log("You bought a potion for 1 gold.");
+            inventory.push({ ...healthPotion });
+            playerGold -= healthPotion.value;
+            console.log(`You bought a ${healthPotion.name} for ${healthPotion.value} gold.`);
+            console.log(`You now have ${playerGold} gold.`);
         }
     } else if (marketChoice === 3) {
         checkStatus();
     } else if (marketChoice === 4) {
-        showInven();
+        showInventory();
         checkInventory();
     } else if (marketChoice === 5) {
         showHelp();
@@ -529,12 +509,6 @@ function market() {
     }
 }
 
-/**
- * Handles the forest location, presenting options to the player.
- * Allows the player to go deeper and enter combat.
- * No parameters.
- * No return value.
- */
 function forest() {
     console.log("\n=== FOREST ===");
     if (firstVisitForest) {
@@ -566,7 +540,7 @@ function forest() {
             gameRunning = false;
         }
     } else if (forestChoice === 4) {
-        showInven();
+        showInventory();
         checkInventory();
     } else if (forestChoice === 5) {
         showHelp();
@@ -585,3 +559,4 @@ function forest() {
 while (gameRunning) {
     currentLocation();
 }
+console.log("Game over. Thank you for playing!");
